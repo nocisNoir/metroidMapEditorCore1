@@ -12,10 +12,10 @@ namespace MetroidMapEditorCore
         public Image mainRoomImg;
         public Button mainRoomButton;
         public EventTrigger roomEvent;
-        public RectTransform mainRoomRect;
+        public RectTransform _MainRoomRect;
 
         [Header("游戏性属性")]
-        public Vector2Int _RoomSize;
+        public Vector2Int _RoomSize; public int _RoomGridOffset;
         public float _DragSpeed;
         bool nowAllowDrag;
         public Color _RoomColor;
@@ -23,14 +23,19 @@ namespace MetroidMapEditorCore
         public string _RoomName;
 
         public List<DoorBase> doors;
+        
 
         private void Awake()
         {
-            mainRoomRect = GetComponent<RectTransform>();
-            mainRoomButton = GetComponent<Button>();
-            if (_RoomSize.x > 0 && _RoomSize.y > 0)
+            if (_RoomGridOffset == 0)
             {
-                mainRoomRect.sizeDelta = 100 * _RoomSize;
+                _RoomGridOffset = 50;
+            }
+            _MainRoomRect = GetComponent<RectTransform>();
+            mainRoomButton = GetComponent<Button>();
+            if (_RoomSize.x > 0 && _RoomSize.y > 0&&_RoomGridOffset>0)
+            {
+                _MainRoomRect.sizeDelta = _RoomGridOffset * _RoomSize;
             }
         }
         private void Start()
@@ -93,12 +98,38 @@ namespace MetroidMapEditorCore
             Debug.Log(Time.time + "房间" + _RoomName + "初始化。。。" + info+"房间面板？"+RoomBoard.mainRoomBoard+"按钮？"+mainRoomButton);
             mainRoomButton.onClick.AddListener(() => RoomBoard.mainRoomBoard.ClickRoom(this));
         }
-        public void setRoomSize(int x=0,int y=0)
+        public void setRoomSize(int x=0,int y=0,int gridOffset=0)
         {
             Vector2Int aimSize = new Vector2Int(x, y);
             if (aimSize != Vector2.zero)
                 _RoomSize = aimSize;
-            GetComponent<RectTransform>().sizeDelta = 100 * _RoomSize;
+            if (gridOffset != 0)
+                _RoomGridOffset = gridOffset;
+            GetComponent<RectTransform>().sizeDelta = gridOffset * _RoomSize;
+        }
+
+        public void addNewDoor()
+        {
+            bool allow0;
+            int newDoorPos = getFirstEmptyPointID(out allow0);
+            if (newDoorPos != 0 || allow0)
+            {
+                //新增一个门
+                DoorBase door = Instantiate(SampleUIObjs.main.sampleDoor, transform);
+                door.InitByAttachRoom = true;
+                //door.doorTransform.localPosition = GetNearestPointOnRoomEdge(door.doorTransform, out eip);
+
+                EdgeIndexPair eip = GetLogicRectOffsetByIndex(newDoorPos, _RoomGridOffset, _MainRoomRect);
+                door.doorTransform.localPosition = GetPositionOnEdge(newDoorPos, _RoomGridOffset);
+                door.setEip(eip);
+                doors.Add(door); door.gameObject.SetActive(true);
+
+            }
+            else
+            {
+                Debug.LogError("无空位不创建");
+            }
+
         }
 
         public static Vector3 gridVector(Vector3 input,int gridsize = 1)
@@ -157,23 +188,48 @@ namespace MetroidMapEditorCore
             Debug.Log("房间" + name + "改色号" + color);
         }
 
+        int getFirstEmptyPointID(out bool first0)
+        {
+            first0 = true;
+            //遍历这个房间每个合法锚点，找到第一个空位时，返回
+            for(int i = 0; i < GetLegalPointNum(_MainRoomRect, _RoomGridOffset); i++)
+            {
+                bool isEmpty=true;
+                EdgeIndexPair nowEip = GetLogicRectOffsetByIndex(i,_RoomGridOffset,_MainRoomRect);
+                foreach (DoorBase door in doors)
+                {
+                    if (door.checkEdgeIndexPair(nowEip))
+                    {
+                        isEmpty = false;
+                        break;
+                    }  
+                }
+                if (i > 0)
+                    first0 = false;
+                if (isEmpty)
+                    return i;
+            }
+            Debug.LogError("未找到空位！！！");
+            return 0;
+        }
+
         public Vector2 GetNearestPointOnRoomEdge(RectTransform objRect,out EdgeIndexPair edgeIndex)
         {
-            int maxPointNum = GetLegalPointNum(mainRoomRect, 50);
+            int maxPointNum = GetLegalPointNum(_MainRoomRect, 50);
             Vector2[] points = new Vector2[maxPointNum];
             for(int i=0; i < maxPointNum; i++)
             {
                 points[i] = GetPositionOnEdge(i);
             }
             int AimPointID = FindNearestPointIndex(points, objRect.localPosition);
-            edgeIndex = GetLogicRectOffsetByIndex(AimPointID, 50, mainRoomRect);
+            edgeIndex = GetLogicRectOffsetByIndex(AimPointID, 50, _MainRoomRect);
             return points[AimPointID];
         }
 
         public Vector2 GetPositionOnEdge(RectTransform.Edge edge, int id, int dOffset = 50, RectTransform rectTransform = null)
         {
             if (!rectTransform)
-                rectTransform = mainRoomRect;
+                rectTransform = _MainRoomRect;
             Debug.LogWarning($"rect：{rectTransform}，距离？{dOffset}");
             id = id % GetLegalPointNum(rectTransform, dOffset);
             EdgeIndexPair eip = GetLogicRectOffsetByIndex(id, dOffset, rectTransform, edge);

@@ -13,14 +13,16 @@ namespace MetroidMapEditorCore
         public TMP_FontAsset aimFont;
         public static RoomInspector current;
         [Header("自带组件")]
+        public Button _SetColorButton;
+        public Button _AddDoorButton;
+        public ColorPattle _colorPattle_RoomColor;
         public TMP_InputField _RoomNameInputField;
-        public Button[] colorButtons;
         public TextMeshProUGUI RoomNameArea;
-        public Color[] colors;
 
         //一个按钮用来调整房间大小
         public TMP_InputField _RoomSizeX;
         public TMP_InputField _RoomSizeY;
+        public TMP_InputField _RoomGridOffset;
        
 
         private void Awake()
@@ -38,7 +40,7 @@ namespace MetroidMapEditorCore
         // Start is called before the first frame update
         void Start()
         {
-            initializeColorButton();
+            initializeColorPattle();
             initializeSize();
 
         }
@@ -49,6 +51,16 @@ namespace MetroidMapEditorCore
 
         }
 
+        void initButtons()
+        {
+            if (_AddDoorButton)
+            {
+                _AddDoorButton.onClick.RemoveAllListeners();
+                if (nowSelectRoom)
+                    _AddDoorButton.onClick.AddListener(() => nowSelectRoom.addNewDoor());
+            }
+
+        }
         void initializeSize()
         {
             Debug.Log(Camera.main.pixelWidth + "," + Camera.main.pixelHeight);
@@ -57,21 +69,15 @@ namespace MetroidMapEditorCore
             rt.offsetMin = new Vector2(-width, 0);
         }
 
-        void initializeColorButton()
+        void initializeColorPattle()
         {
-            for (int i = 0; i < colorButtons.Length; i++)
+            if (_colorPattle_RoomColor)
             {
-                if (i < colors.Length)
-                {
-                    colorButtons[i].GetComponent<Image>().color = colors[i];
-                    //  colorButtons[i].onClick.AddListener(setRoomColor(i));
-                    //colorButtons[i].onClick.AddListener((data)=> { setRoomColor(Color)data; });
-                }
-                else
-                {
-                    Destroy(colorButtons[i].gameObject);
-                }
+                _colorPattle_RoomColor.CallThisPattle();
+                _colorPattle_RoomColor.onClickCallBackEvent += setRoomColor;
+                _SetColorButton.onClick.AddListener(() => callRoomColorPattle());
             }
+
         }
         //加个刷新房间外框
         public void callRoomInspector(RoomBase room)
@@ -83,17 +89,27 @@ namespace MetroidMapEditorCore
             _RoomNameInputField.text = "";
             RoomNameArea.text = room.name;
             RoomNameArea.font = aimFont;
+            _RoomSizeX.text = room._RoomSize.x.ToString();
+            _RoomSizeY.text = room._RoomSize.y.ToString();
+            _RoomGridOffset.text = room._RoomGridOffset.ToString();
             refreshRoomOutline(true);
+            initButtons();
         }
         public void setRoomSize()
         {
-            int x, y;
+            int x, y,z;
             if(int.TryParse( _RoomSizeX.text,out x)&&int.TryParse(_RoomSizeY.text,out y))
             {
+                if (int.TryParse(_RoomGridOffset.text, out z))
+                {
+
+                }
+                else
+                    z = 0;
                 if (nowSelectRoom)
                 {
-                    nowSelectRoom.setRoomSize(x, y);
-                    Debug.Log($"设定房间{nowSelectRoom._RoomName}的尺寸为({x},{y})");
+                    nowSelectRoom.setRoomSize(x, y,z);
+                    Debug.Log($"设定房间{nowSelectRoom._RoomName}的尺寸为({x},{y})，一格大小为{z}");
                 }
             }
         }
@@ -103,6 +119,7 @@ namespace MetroidMapEditorCore
             if (nowSelectRoom)
             {
                 nowSelectRoom.outLineImg.enabled = outlineState;
+                nowSelectRoom.doors.ForEach((door) => door.doorButton.enabled = outlineState);
             }
         }
         public void ResetRoomName()
@@ -116,19 +133,23 @@ namespace MetroidMapEditorCore
         }
         public void HideRoomInspector()
         {
+            if(nowSelectRoom)
+                refreshRoomOutline(false);
+            nowSelectRoom = null;
+
             gameObject.SetActive(false);
         }
 
-        public void setRoomColor(int colID)
+        public void callRoomColorPattle()
         {
-            if (colID >= colors.Length)
-                colID = colors.Length - 1;
-            setRoomColor(colors[colID]);
-            Debug.Log("房间" + nowSelectRoom + "改色号" + colors[colID] + "id是" + colID);
+            _colorPattle_RoomColor.CallThisPattle(true);
         }
-        public void setRoomColor(Color col)
+        public void setRoomColor()
         {
+            Color col = _colorPattle_RoomColor.GetNowClickData();
+
             // Debug.Log(gameObject.name);
+            _SetColorButton.image.color = col;
             nowSelectRoom.SetColor(col);
         }
     }

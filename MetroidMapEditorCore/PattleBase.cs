@@ -4,9 +4,15 @@ using UnityEngine;
 using UnityEngine.UI;
 public class PattleBase<T> : MonoBehaviour
 {
+    public bool defaultHide;
+    public Transform _PattleButtonParent;
     public List<Button> _PattleButtons;
     public int nowClickID;
     public List<T> data;
+    public Button _CloseButton;
+    public event OnClickCallBack onClickCallBackEvent;
+    public delegate void OnClickCallBack();
+
     private void Start()
     {
         DefaultGetButtons();
@@ -14,30 +20,50 @@ public class PattleBase<T> : MonoBehaviour
 
    public void DefaultGetButtons()
     {
-        foreach(Button bt in GetComponentsInChildren<Button>())
+        if (_CloseButton)
+            _CloseButton.onClick.AddListener(() => CallThisPattle(false));
+        foreach(Button bt in  _PattleButtonParent.GetComponentsInChildren<Button>())
         {
-            _PattleButtons.Add(bt);
+            if(!_PattleButtons.Contains(bt))
+                _PattleButtons.Add(bt);
             ButtonInitialize(bt);
         }
     }
     public virtual void  ButtonInitialize(Button b)
     {
         b.onClick.AddListener(() => setPattleButtonID_byClick(b));
+        b.onClick.AddListener(() => onClickCallBackEvent?.Invoke());
+    }
+
+
+    public virtual bool GetDataOnClick(out T dataOut)
+    {
+        dataOut = data[nowClickID];
+        return true;
     }
     public virtual void setPattleButtonID_byClick(Button button)
     {
         nowClickID = getPattleButtonId(button);
-        Debug.LogError("时间" + Time.fixedTime + "按了按钮" + nowClickID);
+        //很重要的地方，需要加一个回掉？
+        Debug.Log("时间" + Time.fixedTime + "按了按钮" + nowClickID);
     }
     public int getPattleButtonId(Button button)
     {
 
         return button.transform.GetSiblingIndex();
     }
-    public virtual T getButtonObj<T>(int i)
+    public T GetNowClickData()
+    {
+        return data[nowClickID];
+    }
+    public virtual T GetButtonObj(int i)
     {
         
         return default;
+    }
+    public void CallThisPattle(bool ifCall=true)
+    {
+        gameObject.SetActive(ifCall);
     }
 
 }

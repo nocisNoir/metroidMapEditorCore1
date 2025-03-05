@@ -5,26 +5,63 @@ using UnityEngine.UI;
 
 public class ColorPattle : PattleBase<Color>
 {
-    public List<Color> colors;
+    public int randomColorSeed;
+   // public List<Color> colors;
     // Start is called before the first frame update
     void Start()
     {
+        initColorData();
         DefaultGetButtons();
+        if (defaultHide)
+            CallThisPattle(false);
 
     }
-
+   
     // Update is called once per frame
     void Update()
     {
         
     }
+    public Color[] GenerateMacaronColors(int length, int seed = 0)
+    {
+        // 初始化随机数种子
+        Random.InitState(seed);
+
+        Color[] colors = new Color[length];
+
+        for (int i = 0; i < length; i++)
+        {
+            // 随机生成色相（0 到 1）
+            float hue = Random.Range(0f, 1f);
+            hue = (i + hue) / length;
+
+            // 固定饱和度和明度
+            float saturation = Random.Range(0.2f, 0.6f); // 低饱和度
+            float value = Random.Range(0.6f, 1f);       // 高明度
+
+            // 将 HSV 转换为 RGB
+            colors[i] = Color.HSVToRGB(hue, saturation, value);
+        }
+
+        return colors;
+    }
+
+    void initColorData()
+    {
+        data = new List<Color>();
+        Color[] colors = GenerateMacaronColors(_PattleButtons.Count, randomColorSeed);
+        foreach (Color co in colors)
+        {
+            data.Add(co);
+        }
+    }
 
     public override void ButtonInitialize(Button b)
     {
-        if (b.transform.GetSiblingIndex() < colors.Count)
+        if (b.transform.GetSiblingIndex() < data.Count)
         {
-            b.GetComponent<Image>().color = colors[b.transform.GetSiblingIndex()];
-            Debug.LogWarning("按钮" + b.transform.GetSiblingIndex() + "颜色" + colors[b.transform.GetSiblingIndex()]);
+            b.GetComponent<Image>().color = data[b.transform.GetSiblingIndex()];
+            Debug.Log("按钮" + b.transform.GetSiblingIndex() + "颜色" + data[b.transform.GetSiblingIndex()]);
         }
         else
         {
@@ -32,13 +69,9 @@ public class ColorPattle : PattleBase<Color>
         }
         base.ButtonInitialize(b);
     }
-    public override T getButtonObj<T>(int i)
+    public override Color GetButtonObj(int i)
     {
-        if (typeof(T) == typeof(Color)&&i<colors.Count)
-        {
-            return (T)(object)colors[i];
-        }
-        return base.getButtonObj<T>(i);
+        return base.GetButtonObj(i);
     }
 
     public static string ColorToHex(Color color)
@@ -54,9 +87,10 @@ public class ColorPattle : PattleBase<Color>
     public override void setPattleButtonID_byClick(Button button)
     {
         base.setPattleButtonID_byClick(button);
-        if (nowClickID < colors.Count)
+        if (nowClickID < data.Count)
         {
-            Debug.LogError("按了" + nowClickID + "按钮" + $"<color={ColorToHex(colors[nowClickID])}>颜色{colors[nowClickID]}</color>");
+            //这里输出一个颜色
+            Debug.LogError("按了" + nowClickID + "按钮" + $"<color={ColorToHex(data[nowClickID])}>颜色{data[nowClickID]}</color>");
         }
     }
 
