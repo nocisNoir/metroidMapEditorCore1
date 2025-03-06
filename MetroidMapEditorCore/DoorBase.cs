@@ -14,7 +14,7 @@ namespace MetroidMapEditorCore
         //public Transform _OffsetToRoom;
         public BaseDirection _DirecionToRoom;
         public int _IdToRoom;
-        
+        public UIObjDragController dragController;
 
         [Header("”Œœ∑–‘ Ù–‘")]
         public DoorHideType _HideType;
@@ -41,7 +41,12 @@ namespace MetroidMapEditorCore
                     gameObject.AddComponent<Button>();
             }
             doorButton = GetComponent<Button>();
-
+            if (!dragController)
+            {
+                if (!GetComponent<UIObjDragController>())
+                    gameObject.AddComponent<UIObjDragController>();
+                dragController = GetComponent<UIObjDragController>();
+            }
         }
         // Start is called before the first frame update
         void Start()
@@ -100,9 +105,9 @@ namespace MetroidMapEditorCore
             doorButton.enabled = enable;
         }
 
-        public void callDoorInspector(DoorBase door)
+        public void callDoorInspector()
         {
-
+            DoorInspector.current.callDoorInspector(this);
         }
     }
 

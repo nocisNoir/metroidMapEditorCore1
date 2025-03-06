@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+
 namespace MetroidMapEditorCore
 {
     public class RoomInspector : MonoBehaviour
     {
+        public DoorInspector doorInspector;
         public RoomBase nowSelectRoom;
         public string _RoomName_Input;
         public Color _RoomColor_Input;
@@ -79,6 +81,21 @@ namespace MetroidMapEditorCore
             }
 
         }
+
+        public void callDoorInspector(DoorBase door)
+        {
+            if (!doorInspector)
+                Debug.LogError("未找到门检视板");
+
+
+
+
+        }
+        public void hideDoorInspector()
+        {
+
+        }
+
         //加个刷新房间外框
         public void callRoomInspector(RoomBase room)
         {

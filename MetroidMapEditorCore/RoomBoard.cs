@@ -90,10 +90,10 @@ namespace MetroidMapEditorCore
             //    Debug.LogError("选中房间" + room.gameObject.name);
             foreach (RoomBase r in rooms)
             {
-                r.onDragPrepare(false);
+                r.dragController.onDragPrepare(false);
             }
             room.transform.SetSiblingIndex(roomsContainer.childCount - 1);
-            room.onDragPrepare(true);
+            room.dragController.onDragPrepare(true);
             RoomInspector.current.callRoomInspector(room);
         }
 

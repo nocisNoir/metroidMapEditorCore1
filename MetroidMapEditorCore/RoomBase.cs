@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 
 namespace MetroidMapEditorCore
 {
@@ -11,15 +10,13 @@ namespace MetroidMapEditorCore
         public Image outLineImg;
         public Image mainRoomImg;
         public Button mainRoomButton;
-        public EventTrigger roomEvent;
         public RectTransform _MainRoomRect;
-
+        public UIObjDragController dragController;
         [Header("游戏性属性")]
         public Vector2Int _RoomSize; public int _RoomGridOffset;
-        public float _DragSpeed;
-        bool nowAllowDrag;
+
         public Color _RoomColor;
-        private Vector2 dragOffset;
+
         public string _RoomName;
 
         public List<DoorBase> doors;
@@ -37,6 +34,13 @@ namespace MetroidMapEditorCore
             {
                 _MainRoomRect.sizeDelta = _RoomGridOffset * _RoomSize;
             }
+            if (!dragController)
+            {
+                if(!GetComponent<UIObjDragController>())
+                    gameObject.AddComponent<UIObjDragController>();
+                dragController = GetComponent<UIObjDragController>();
+            }
+            
         }
         private void Start()
         {
@@ -46,9 +50,9 @@ namespace MetroidMapEditorCore
             }
             if (!outLineImg)
                 outLineImg = GetComponent<Image>();
-            InitializedEventTrigger();
+          //  InitializedEventTrigger();
             initImg();
-            transform.localPosition = gridVector(transform.localPosition, 50);
+            transform.localPosition = UIObjDragController.gridVector(transform.localPosition, _RoomGridOffset);
         }
 
         void initImg()
@@ -68,16 +72,9 @@ namespace MetroidMapEditorCore
         }
         private void Update()
         {
-            if (nowAllowDrag)
-            {
-
-            }
-        }
-        public void onDragPrepare(bool state)
-        {
-            nowAllowDrag = state;
 
         }
+
         void refreshMainRoomImgSize()
         {
             // 获取 RectTransform
@@ -132,61 +129,19 @@ namespace MetroidMapEditorCore
 
         }
 
-        public static Vector3 gridVector(Vector3 input,int gridsize = 1)
-        {
-            return new Vector3((int)(input.x * (1.0f/gridsize)) * gridsize, (int)(input.y * (1.0f/gridsize)) * gridsize, input.z);
+        //用于给房间设置网格上面的位置
 
-        }
 
-        public void OnBeginDrag(PointerEventData data)
-        {
-            if (!nowAllowDrag)
-                return;
-            //  Debug.LogWarning("允许拖动房间" + name);
-            // 记录点击位置
-            dragOffset = (Vector2)transform.position - (Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        }
-
-        void InitializedEventTrigger()
-        {
-            if (!roomEvent)
-            {
-                if (gameObject.GetComponent<EventTrigger>())
-                {
-                    roomEvent = gameObject.GetComponent<EventTrigger>();
-                }
-                else
-                {
-                    roomEvent = gameObject.AddComponent<EventTrigger>();
-                }
-            }
-            EventTrigger.Entry entry = new EventTrigger.Entry();
-            entry.eventID = EventTriggerType.BeginDrag;
-            entry.callback.AddListener((data) => { OnBeginDrag((PointerEventData)data); });
-            roomEvent.triggers.Add(entry);
-            entry = new EventTrigger.Entry();
-            entry.eventID = EventTriggerType.Drag;
-            entry.callback.AddListener((data) => { OnDrag((PointerEventData)data); });
-            roomEvent.triggers.Add(entry);
-        }
-
-        public void OnDrag(PointerEventData data)
-        {
-            if (!nowAllowDrag)
-                return;
-            //        Debug.Log(Time.fixedDeltaTime+ "正在拖动房间" + name);
-            // 拖动房间
-            Vector2 mousePos = (Input.mousePosition) + (Vector3)dragOffset;
-           // transform.position = new Vector3(mousePos.x, mousePos.y, transform.position.z);
-            transform.position = (Vector3)((Vector2)Camera.main.ScreenToWorldPoint(mousePos)) + Vector3.forward * transform.position.z;
-            transform.localPosition = gridVector(transform.localPosition, 50);//new Vector3((int)(transform.position.x * 0.5f) * 2, (int)(transform.position.y * 0.5f) * 2, transform.position.z);
-        }
 
         public void SetColor(Color color)
         {
             mainRoomImg.color = color;
             Debug.Log("房间" + name + "改色号" + color);
         }
+
+        /// <summary>
+        /// 以下全都是获取房间上点位相关的函数
+        /// </summary>
 
         int getFirstEmptyPointID(out bool first0)
         {
