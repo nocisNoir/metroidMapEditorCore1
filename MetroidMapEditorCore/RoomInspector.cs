@@ -17,6 +17,7 @@ namespace MetroidMapEditorCore
         [Header("自带组件")]
         public Button _SetColorButton;
         public Button _AddDoorButton;
+        public Button _CloseButton;
         public ColorPattle _colorPattle_RoomColor;
         public TMP_InputField _RoomNameInputField;
         public TextMeshProUGUI RoomNameArea;
@@ -44,7 +45,7 @@ namespace MetroidMapEditorCore
         {
             initializeColorPattle();
             initializeSize();
-
+            nowSelectRoom = null;
         }
 
         // Update is called once per frame
@@ -61,13 +62,16 @@ namespace MetroidMapEditorCore
                 if (nowSelectRoom)
                     _AddDoorButton.onClick.AddListener(() => nowSelectRoom.addNewDoor());
             }
-
+            if (_CloseButton)
+            {
+                _CloseButton.onClick.AddListener(() => HideRoomInspector());
+            }
         }
         void initializeSize()
         {
             Debug.Log(Camera.main.pixelWidth + "," + Camera.main.pixelHeight);
             RectTransform rt = GetComponent<RectTransform>();
-            int width = Mathf.Max((int)(Camera.main.pixelWidth / 3.5f), 120);
+            int width = Mathf.Max((int)(Camera.main.pixelWidth / 5f), 120);
             rt.offsetMin = new Vector2(-width, 0);
         }
 
@@ -91,16 +95,18 @@ namespace MetroidMapEditorCore
 
 
         }
-        public void hideDoorInspector()
-        {
 
-        }
 
         //加个刷新房间外框
         public void callRoomInspector(RoomBase room)
         {
             refreshRoomOutline();
             gameObject.SetActive(true);
+            if (room != nowSelectRoom)
+            {
+                if (nowSelectRoom&&doorInspector)
+                    doorInspector.hideDoorInspector();
+            }
             nowSelectRoom = room;
             _RoomNameInputField.fontAsset = aimFont;
             _RoomNameInputField.text = "";
@@ -111,6 +117,8 @@ namespace MetroidMapEditorCore
             _RoomGridOffset.text = room._RoomGridOffset.ToString();
             refreshRoomOutline(true);
             initButtons();
+            if (AbilityInspector.current)
+                AbilityInspector.current.callAbilityInspector(false);
         }
         public void setRoomSize()
         {
@@ -136,7 +144,7 @@ namespace MetroidMapEditorCore
             if (nowSelectRoom)
             {
                 nowSelectRoom.outLineImg.enabled = outlineState;
-                nowSelectRoom.doors.ForEach((door) => door.doorButton.enabled = outlineState);
+                nowSelectRoom.doors.ForEach((door) => { door.doorButton.enabled = outlineState;door.dragController.onDragPrepare(false); }) ;
             }
         }
         public void ResetRoomName()

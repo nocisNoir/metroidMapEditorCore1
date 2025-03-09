@@ -7,6 +7,7 @@ namespace MetroidMapEditorCore
 {
     public class RoomBase : MonoBehaviour
     {
+        public bool isSample;
         public Image outLineImg;
         public Image mainRoomImg;
         public Button mainRoomButton;
@@ -24,6 +25,8 @@ namespace MetroidMapEditorCore
 
         private void Awake()
         {
+            if (isSample)
+                return;
             if (_RoomGridOffset == 0)
             {
                 _RoomGridOffset = 50;
@@ -39,11 +42,14 @@ namespace MetroidMapEditorCore
                 if(!GetComponent<UIObjDragController>())
                     gameObject.AddComponent<UIObjDragController>();
                 dragController = GetComponent<UIObjDragController>();
+                dragController._DragGridOffset = _RoomGridOffset;
             }
             
         }
         private void Start()
         {
+            if (isSample)
+                return;
             if (_RoomName == "")
             {
                 _RoomName = gameObject.name;
@@ -61,9 +67,11 @@ namespace MetroidMapEditorCore
             {
                 mainRoomImg = new GameObject("MainRoomImg").AddComponent<Image>();
             }
-            mainRoomImg.transform.parent = transform;
+           // mainRoomImg.transform.parent = transform;
             // mainRoomImg.rectTransform.        // 设置父对象为当前脚本所在的 GameObject
             mainRoomImg.transform.SetParent(transform, false);
+            mainRoomImg.transform.localPosition = Vector2.zero;
+            mainRoomImg.transform.localScale = Vector3.one;
             mainRoomImg.transform.SetAsFirstSibling();
             refreshMainRoomImgSize();
             mainRoomImg.color = outLineImg.color;
@@ -99,17 +107,25 @@ namespace MetroidMapEditorCore
         {
             Vector2Int aimSize = new Vector2Int(x, y);
             if (aimSize != Vector2.zero)
+            {
                 _RoomSize = aimSize;
+            }
             if (gridOffset != 0)
+            {
                 _RoomGridOffset = gridOffset;
+            }
             GetComponent<RectTransform>().sizeDelta = gridOffset * _RoomSize;
+            if (aimSize != Vector2.zero || gridOffset != 0)
+            {
+                RefreshDoorPointWhileResetSize();
+            }
         }
 
         public void addNewDoor()
         {
-            bool allow0;
-            int newDoorPos = getFirstEmptyPointID(out allow0);
-            if (newDoorPos != 0 || allow0)
+            //bool allow0;
+            int newDoorPos = getFirstEmptyPointID();
+            if (newDoorPos >= 0)// || allow0)
             {
                 //新增一个门
                 DoorBase door = Instantiate(SampleUIObjs.main.sampleDoor, transform);
@@ -118,7 +134,8 @@ namespace MetroidMapEditorCore
 
                 EdgeIndexPair eip = GetLogicRectOffsetByIndex(newDoorPos, _RoomGridOffset, _MainRoomRect);
                 door.doorTransform.localPosition = GetPositionOnEdge(newDoorPos, _RoomGridOffset);
-                door.setEip(eip);
+                door._AttachRoom = this;
+                door.setEip(eip);//新建门？
                 doors.Add(door); door.gameObject.SetActive(true);
 
             }
@@ -129,63 +146,174 @@ namespace MetroidMapEditorCore
 
         }
 
+
+        public void setDoorToNewLegalPos(DoorBase door)
+        {
+            if (!doors.Contains(door))
+                Debug.LogError("未找到房间");
+            // bool allow0;
+            int newDoorPos = getFirstEmptyPointID();//out allow0);
+            if (newDoorPos >= 0)// || allow0)
+            {
+                EdgeIndexPair eip = GetLogicRectOffsetByIndex(newDoorPos, _RoomGridOffset, _MainRoomRect);
+                door.doorTransform.localPosition = GetPositionOnEdge(newDoorPos, _RoomGridOffset);
+                door.setEip(eip);
+            }
+            else
+            {
+                Debug.LogError("无空位不移动");
+            }
+        }
+
+        public void setDoorToInputPos(DoorBase door,EdgeIndexPair eip)
+        {
+            if (!doors.Contains(door))
+                Debug.LogError("未找到房间");
+            if (checkGetDoorsInEipPos(eip, out _))
+                Debug.LogError("位置" + eip.logInfo() + "已有门");
+            //把房间塞到eip位置上面去
+            door.doorTransform.localPosition = GetPositionOnEdge(eip, _RoomGridOffset);
+            door.setEip(eip);
+
+        }
         //用于给房间设置网格上面的位置
+        public void refreshRoomDoorsDragState(DoorBase door)
+        {
 
-
+            if (!doors.Contains(door))
+            {
+                Debug.LogError($"输入非此房间的门{door.gameObject.name}");
+            }
+            
+            doors.ForEach((d) => d.dragController.onDragPrepare(false));
+            door.dragController.onDragPrepare(true);
+        }
 
         public void SetColor(Color color)
         {
             mainRoomImg.color = color;
+            _RoomColor = color;
             Debug.Log("房间" + name + "改色号" + color);
         }
 
+
+        public void RefreshDoorPointWhileResetSize(bool ifDelete = true)
+        {
+            RectTransform.Edge nowEdge = RectTransform.Edge.Left;
+            for(int edgeId = 0; edgeId < 4; edgeId++)
+            {
+                nowEdge = GetNextEdge(nowEdge);
+
+                //从顶边开始
+                List<DoorBase> nowEdgeDoor = new List<DoorBase>();
+                foreach(DoorBase d in doors)
+                {
+                    if (d.getEip().Edge == nowEdge)
+                        nowEdgeDoor.Add(d);
+                }
+                nowEdgeDoor.Sort((door1, door2) => door1.getEip().Id.CompareTo(door2.getEip().Id));
+
+                float length = (nowEdge == RectTransform.Edge.Left || nowEdge == RectTransform.Edge.Right)
+                    ? _MainRoomRect.rect.height
+                    : _MainRoomRect.rect.width;
+                int legalPointNum = GetPointsNumOnEdge(length, _RoomGridOffset);
+                //先把多余的去掉
+              //  Debug.LogError($"边{nowEdge}可用点数{legalPointNum}");
+                List<DoorBase> overflowDoors = new List<DoorBase>();
+                if (nowEdgeDoor.Count > legalPointNum)
+                {
+                    overflowDoors = nowEdgeDoor.GetRange(legalPointNum, nowEdgeDoor.Count - legalPointNum);
+                    nowEdgeDoor.RemoveRange(legalPointNum, nowEdgeDoor.Count - legalPointNum);
+                }
+
+                //现在是长度合适的list了
+                legalPointNum--;
+                int lastCount = nowEdgeDoor.Count - 1;
+                while (lastCount>0&&legalPointNum < nowEdgeDoor[lastCount].getEip().Id)
+                {
+                    nowEdgeDoor[lastCount].setEip(legalPointNum);
+                    
+                    legalPointNum--;
+                    lastCount--;
+                }
+                //削弱完了该给这些门全部刷新一边？
+
+                foreach(DoorBase door in nowEdgeDoor)
+                {
+                    door.RefreshDoorPos();
+                    door.gameObject.SetActive(true);
+                }
+                foreach(DoorBase door in overflowDoors)
+                {
+                    door.gameObject.SetActive(false);
+                }
+
+            }
+        }
+
+        
         /// <summary>
         /// 以下全都是获取房间上点位相关的函数
         /// </summary>
-
-        int getFirstEmptyPointID(out bool first0)
+        bool checkGetDoorsInEipPos(EdgeIndexPair nowEip, out DoorBase[] doorsOnPos)
         {
-            first0 = true;
+            List<DoorBase> doorBases = new List<DoorBase>();
+            bool getDoor = false;
+
+            foreach (DoorBase door in doors)
+            {
+                if (door.checkEdgeIndexPair(nowEip))
+                {
+                    getDoor = true;
+                    doorBases.Add(door);
+                }
+            }
+            doorsOnPos = doorBases.ToArray();
+            return getDoor;
+
+        }
+        int getFirstEmptyPointID()//out bool first0)
+        {
+           // first0 = true;
             //遍历这个房间每个合法锚点，找到第一个空位时，返回
             for(int i = 0; i < GetLegalPointNum(_MainRoomRect, _RoomGridOffset); i++)
             {
-                bool isEmpty=true;
+                //bool isEmpty=true;
                 EdgeIndexPair nowEip = GetLogicRectOffsetByIndex(i,_RoomGridOffset,_MainRoomRect);
-                foreach (DoorBase door in doors)
+               if(!checkGetDoorsInEipPos(nowEip, out _))
                 {
-                    if (door.checkEdgeIndexPair(nowEip))
-                    {
-                        isEmpty = false;
-                        break;
-                    }  
-                }
-                if (i > 0)
-                    first0 = false;
-                if (isEmpty)
+                  //  first0 = (i == 0);
                     return i;
+                    //检测此逻辑位置无门
+                }
             }
             Debug.LogError("未找到空位！！！");
-            return 0;
+            return -1;
         }
 
         public Vector2 GetNearestPointOnRoomEdge(RectTransform objRect,out EdgeIndexPair edgeIndex)
         {
-            int maxPointNum = GetLegalPointNum(_MainRoomRect, 50);
+            int maxPointNum = GetLegalPointNum(_MainRoomRect, _RoomGridOffset);
             Vector2[] points = new Vector2[maxPointNum];
             for(int i=0; i < maxPointNum; i++)
             {
                 points[i] = GetPositionOnEdge(i);
             }
             int AimPointID = FindNearestPointIndex(points, objRect.localPosition);
-            edgeIndex = GetLogicRectOffsetByIndex(AimPointID, 50, _MainRoomRect);
+            edgeIndex = GetLogicRectOffsetByIndex(AimPointID, _RoomGridOffset, _MainRoomRect);
+           Debug.LogWarning($"最近点{points[AimPointID]}序号{AimPointID},逻辑位置{edgeIndex.logInfo()}" );
             return points[AimPointID];
         }
 
-        public Vector2 GetPositionOnEdge(RectTransform.Edge edge, int id, int dOffset = 50, RectTransform rectTransform = null)
+        public Vector2 GetPositionOnEdge(EdgeIndexPair edgeIndexPair,int dOffset = -1, RectTransform rectTransform = null)
         {
             if (!rectTransform)
                 rectTransform = _MainRoomRect;
+            if (dOffset == -1)
+                dOffset = _RoomGridOffset;
             Debug.LogWarning($"rect：{rectTransform}，距离？{dOffset}");
+            int id = edgeIndexPair.Id;
+            RectTransform.Edge edge = edgeIndexPair.Edge;
             id = id % GetLegalPointNum(rectTransform, dOffset);
             EdgeIndexPair eip = GetLogicRectOffsetByIndex(id, dOffset, rectTransform, edge);
             // 获取 RectTransform 的宽高
@@ -231,13 +359,30 @@ namespace MetroidMapEditorCore
             }
         }
 
+        public static RectTransform.Edge GetPreviousEdge(RectTransform.Edge currentEdge)
+        {
+            switch (currentEdge)
+            {
+                case RectTransform.Edge.Top:
+                    return RectTransform.Edge.Left;
+                case RectTransform.Edge.Right:
+                    return RectTransform.Edge.Top;
+                case RectTransform.Edge.Bottom:
+                    return RectTransform.Edge.Right;
+                case RectTransform.Edge.Left:
+                    return RectTransform.Edge.Bottom;
+                default:
+                    return RectTransform.Edge.Top; // 默认返回上边
+            }
+        }
         public Vector2 GetPositionOnEdge(int id, int doffset = 50, RectTransform rectTransform = null)
         {
-            return GetPositionOnEdge(RectTransform.Edge.Top, id, doffset, rectTransform);
+            return GetPositionOnEdge(new EdgeIndexPair(id,RectTransform.Edge.Top), doffset, rectTransform);
         }
         // 计算 RectTransform 四条边上所有合法点的个数之和
-        public static int GetLegalPointNum(RectTransform rect, int poffset)
+        public static int GetLegalPointNum(RectTransform rect, int poffset=-1)
         {
+            
             // 获取 RectTransform 的宽高
             float width = rect.rect.width;
             float height = rect.rect.height;
@@ -252,14 +397,23 @@ namespace MetroidMapEditorCore
             // 返回四条边的合法点数之和
             return topPoints + rightPoints + bottomPoints + leftPoints;
         }
-        public static int GetPointsNumOnEdge(float edgeLength, int pOffset)
+         static int GetPointsNumOnEdge(float edgeLength, int pOffset)
         {
-            // 每个点的间隔是 50 单位
-            // float interval = 50;
-
             // 合法点数 = 边长度 / 间隔的整数部分
             int points = Mathf.FloorToInt(edgeLength / pOffset);
             return points;
+        }
+         static int GetPointNumOnEdge(RectTransform.Edge edge,RectTransform rect,int pOffset)
+        {
+            float length = (edge == RectTransform.Edge.Left || edge == RectTransform.Edge.Right)
+                ? rect.rect.height
+                : rect.rect.width;
+            int legalPointNum = GetPointsNumOnEdge(length, pOffset);// + 1;
+            return legalPointNum;
+        }
+        public int GetPointNumOnEdge(RectTransform.Edge edge)
+        {
+            return GetPointNumOnEdge(edge, _MainRoomRect, _RoomGridOffset);
         }
 
         // 返回距离 pos 最近的点的序号
@@ -291,7 +445,11 @@ namespace MetroidMapEditorCore
         //输入一个id，返回这个id对应的边和此边上的id
         public static EdgeIndexPair GetLogicRectOffsetByIndex(int id,int dOffset,RectTransform rect,RectTransform.Edge edge=RectTransform.Edge.Top)
         {
+         //   int i = 0;
+           // int[] temp = new int[5] {-1,-1,-1,-1,-1 };
+           // temp[0] = id;
             id = id % GetLegalPointNum(rect, dOffset);
+            //temp[1] = id;
             // 计算目标位置的偏移量
             float width = rect.rect.width;
             float height = rect.rect.height;
@@ -310,9 +468,12 @@ namespace MetroidMapEditorCore
             }
             float offset = id * dOffset;
 
-            while (offset > edgeLength)
+            while (offset >= edgeLength)
             {
+               // if (i < 3)
+                 //   i++;
                 id -= GetPointsNumOnEdge(edgeLength, dOffset);
+               // temp[i + 1] = id;
                 offset = id * dOffset; // 下一个边算id
                 edge = GetNextEdge(edge); // 顺时针旋转到下一个边
 
@@ -330,6 +491,7 @@ namespace MetroidMapEditorCore
                 }
             }
 
+          //  Debug.Log($"计算顺序{temp[0]},{temp[1]},{temp[2]},{temp[3]},{temp[4]},id：{id}，边：{edge}");
             return new EdgeIndexPair(id, edge); 
         }
 
@@ -337,8 +499,6 @@ namespace MetroidMapEditorCore
         [System.Serializable]
     public struct EdgeIndexPair
     {
-       public RectTransform.Edge _edge;
-       public int _index;
 
         public EdgeIndexPair(int id, RectTransform.Edge edge) : this()
         {
@@ -346,8 +506,37 @@ namespace MetroidMapEditorCore
             Edge = edge;
         }
 
-        public int Id { get; }
-        public RectTransform.Edge Edge { get; }
+        public static bool operator ==(EdgeIndexPair a, EdgeIndexPair b)
+        {
+            return a.Edge == b.Edge && a.Id == b.Id;
+        }
+
+        // 重写 != 运算符
+        public static bool operator !=(EdgeIndexPair a, EdgeIndexPair b)
+        {
+            return !(a == b);
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj is EdgeIndexPair other)
+            {
+                return this == other;
+            }
+            return false;
+        }
+        public string logInfo()
+        {
+            return $"边{Edge.ToString()}序号{Id}";
+        }
+        // 重写 GetHashCode 方法
+        public override int GetHashCode()
+        {
+            // 使用 _edge 和 _index 的哈希值组合
+            return Edge.GetHashCode() ^ Id.GetHashCode();
+        }
+
+        [SerializeField] public int Id;//{ get; }
+        [SerializeField] public RectTransform.Edge Edge;// { get; }
     }
 }
 

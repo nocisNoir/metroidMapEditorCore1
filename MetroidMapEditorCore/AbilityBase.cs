@@ -6,11 +6,13 @@ namespace MetroidMapEditorCore
 {
     public class AbilityBase : LogicAbilityBase
     {
+        
         [SerializeField] AbilityTriggerType _TriggerType;//触发类型
         [SerializeField] KeyCode[] _ActiveKey;
-        [SerializeField] Button[] _ActiveButtons;
+       // [SerializeField] Button[] _ActiveButtons;
         [SerializeField] bool _IsBasicMoveAbility;//是否为上下左右键的基础移动能力
-
+        [SerializeField] public Sprite _IconSpr;
+        [SerializeField] public Color _IconColor;
         // Start is called before the first frame update
         void Start()
         {
@@ -22,7 +24,17 @@ namespace MetroidMapEditorCore
         {
 
         }
-
+        public void refreshIcon(Color col=default,Sprite spr=null)
+        {
+            if (col != default)
+                _IconColor = col;
+            if(spr!=null)
+                _IconSpr = spr;
+        }
+        public void refreshIcon(Sprite spr=null)
+        {
+            refreshIcon(default, spr);
+        }
         public AbilityTriggerType GetTriggerType()
         {
             return _TriggerType;

@@ -10,6 +10,7 @@ namespace MetroidMapEditorCore
         public static RoomBoard mainRoomBoard;
         public GameObject roomPrefab; // 房间预制件
         public Transform roomsContainer; // 房间容器，用于存放所有房间
+        public Button _AddNewRoomButton;
         public Button _ZoomUpButton;
         public Button _ZoomDownButton;
         public float zoomMin = 0.5f, zoomMax = 3f; // 缩放上下限
@@ -44,12 +45,22 @@ namespace MetroidMapEditorCore
         }
 
         // 创建新房间
-        public void CreateRoom(Vector2 position)
+        public void CreateRoom()
         {
-            GameObject newRoomObj = Instantiate(roomPrefab, position, Quaternion.identity, roomsContainer);
-            RoomBase newRoom = newRoomObj.GetComponent<RoomBase>();
+            Vector2 position = Vector2.zero;
+            // GameObject newRoomObj = 
+            RoomBase newRoom = Instantiate(SampleUIObjs.main.sampleRoom);//, position, Quaternion.identity, roomsContainer);// newRoomObj.GetComponent<RoomBase>();
             rooms.Add(newRoom);
-            newRoom.SetColor(Random.ColorHSV()); // 随机颜色示例
+
+            newRoom.isSample = false;
+            newRoom.gameObject.SetActive(true);
+
+            newRoom.transform.SetParent(transform);
+            newRoom.transform.localPosition = position;
+            newRoom.transform.localScale = Vector3.one;
+            newRoom.ReportRoomInitialize("初始化计入房间版总控");
+
+            //newRoom.SetColor(Random.ColorHSV()); // 随机颜色示例
         }
 
         // 删除房间

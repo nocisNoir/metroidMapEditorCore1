@@ -4,6 +4,13 @@ using UnityEngine;
 using UnityEngine.UI;
 public class PattleBase<T> : MonoBehaviour
 {
+    [Header("是否显示选择")]
+    public bool _UseSelectUI;//显示目前选中的id
+    public GameObject _SelectUI;
+    [Header("是否将最后一个设置为添加")]
+    public bool _UseLastAddData;//设置为true时，若点击的buttonID==Data.count，出现新增data的选单
+    public GameObject _LastButtonAddUI;//最后一格添加的显示ui
+
     public bool defaultHide;
     public Transform _PattleButtonParent;
     public List<Button> _PattleButtons;
@@ -28,6 +35,7 @@ public class PattleBase<T> : MonoBehaviour
                 _PattleButtons.Add(bt);
             ButtonInitialize(bt);
         }
+     
     }
     public virtual void  ButtonInitialize(Button b)
     {
@@ -43,9 +51,50 @@ public class PattleBase<T> : MonoBehaviour
     }
     public virtual void setPattleButtonID_byClick(Button button)
     {
+
         nowClickID = getPattleButtonId(button);
+
+        if (_UseLastAddData)
+        {
+            if (nowClickID == data.Count)
+            {
+                addData();
+                //data.Add(new T()) //data[0]);
+                //加个新的
+                refreshLaskButtonAddUI();
+            }
+        }
+        if (_UseSelectUI && _SelectUI)
+        {
+            if (nowClickID < data.Count)
+            {
+                _SelectUI.transform.position = button.transform.position;
+                _SelectUI.transform.parent = button.transform;
+                _SelectUI.SetActive(true);// = true;
+            }
+            else
+                _SelectUI.SetActive(false);// = false;
+        }
         //很重要的地方，需要加一个回掉？
         Debug.Log("时间" + Time.fixedTime + "按了按钮" + nowClickID);
+    }
+
+    void refreshLaskButtonAddUI()
+    {
+        if (_LastButtonAddUI && data.Count <= _PattleButtons.Count)
+        {
+            _LastButtonAddUI.SetActive(true);
+            _LastButtonAddUI.transform.position = _PattleButtons[data.Count].transform.position;
+            _LastButtonAddUI.transform.parent = _PattleButtons[data.Count].transform;
+        }
+        else
+        {
+            _LastButtonAddUI.SetActive(false);
+        }
+    }
+    public virtual void addData()
+    {
+
     }
     public int getPattleButtonId(Button button)
     {

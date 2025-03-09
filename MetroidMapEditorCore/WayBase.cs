@@ -37,15 +37,25 @@ namespace MetroidMapEditorCore
 
             // 设置 LineRenderer 的基本属性
             lineRenderer.positionCount = 2; // 设置线的顶点数为 2
-            lineRenderer.startWidth = .5f;   // 设置线宽
-            lineRenderer.endWidth = .5f;
+            lineRenderer.startWidth = .1f;   // 设置线宽
+            lineRenderer.endWidth = .1f;
             lineRenderer.material = new Material(Shader.Find("Sprites/Default")); // 设置材质
-            lineRenderer.startColor = Color.red; // 设置线颜色
-            lineRenderer.endColor = Color.red;
+            //lineRenderer.startColor = Color.red; // 设置线颜色
+            //lineRenderer.endColor = Color.red;
         }
 
         void UpdateLinePositions()
         {
+            if (attachDoors.Length < 2)
+            {
+                Debug.LogError("路线输入参数错误，杀了");
+                return;
+            }
+            if (!attachDoors[0]||!attachDoors[1])
+            {
+                Debug.LogError("门没了，该杀了");
+                Destroy(gameObject);
+            }
             // 将 UI 坐标转换为世界坐标
             Vector3 startPos = RectTransformUtility.WorldToScreenPoint(Camera.main, doorPoss[0].position);
             startPos= Camera.main.ScreenToWorldPoint(new Vector3(startPos.x, startPos.y, 10));
@@ -64,7 +74,11 @@ namespace MetroidMapEditorCore
             rawImage = lineObject.AddComponent<RawImage>();
         }
 
-
+        public void showThisWay()
+        {
+            gameObject.SetActive(true);
+            lineRenderer.enabled = true;
+        }
         void UpdateLine()
         {
             // 获取起点和终点的位置

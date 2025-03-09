@@ -6,15 +6,13 @@ using UnityEngine.UI;
     public class LogicAbilityBase : MonoBehaviour
     {
         [Header("能力属性")]
-        [SerializeField]protected int _ID;
-        [SerializeField]protected string _AbilityName;
+        [SerializeField]public int _ID;
+        [SerializeField]public string _AbilityName;
+        [SerializeField] public string _AbilityInfo;//描述
 
         [Header("能力获取&使用数据")]
         [SerializeField]protected bool _isGain;//是否已获得此能力
         [SerializeField]protected bool _isUseAbilityState;//针对按键切换状态的能力，记录是否在能力状态
-    [Header("阶段性能力属性")]
-    [SerializeField] protected int _maxAbilityStateNum;
-    [SerializeField] protected int _nowAbilityState;
 
 
         //获取信息
