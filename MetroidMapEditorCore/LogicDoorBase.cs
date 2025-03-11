@@ -25,6 +25,12 @@ public class LogicDoorBase : MonoBehaviour
     {
         
     }
+
+    public bool checkDoorAbilityRequire()
+    {
+        Debug.LogWarning("记得补充进门检测函数！！！");
+        return true;
+    }
 }
 public enum OneSideDoorType//单向门属性
 {

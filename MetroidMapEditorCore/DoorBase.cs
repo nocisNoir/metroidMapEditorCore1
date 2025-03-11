@@ -13,10 +13,14 @@ namespace MetroidMapEditorCore
         public Sprite _Icon;
         public RectTransform doorTransform;
         public Button doorButton;
+        public Outline doorOutLine;
+
+        public Outline doorAltOutLine;
         //public Transform _OffsetToRoom;
-        public BaseDirection _DirecionToRoom;
+      //  public BaseDirection _DirecionToRoom;
         public int _IdToRoom;
         public UIObjDragController dragController;
+
 
         [Header("”Œœ∑–‘ Ù–‘")]
         public DoorHideType _HideType;
@@ -64,7 +68,20 @@ namespace MetroidMapEditorCore
                 dragController = GetComponent<UIObjDragController>();
                 dragController.useRoomLegalPos = true;
                 dragController._AttachDoor = this;
-
+            }
+            if (!doorOutLine)
+            {
+                doorOutLine = gameObject.AddComponent<Outline>();
+                doorOutLine.effectColor = Color.black;
+                doorOutLine.effectDistance =new Vector2(6,3);
+                doorOutLine.enabled = false;
+            }
+            if (!doorAltOutLine)
+            {
+                doorAltOutLine = gameObject.AddComponent<Outline>();
+                doorAltOutLine.effectColor = Color.red;
+                doorAltOutLine.effectDistance = new Vector2(8 , 5);
+                doorAltOutLine.enabled = false;
             }
         }
         // Start is called before the first frame update
@@ -191,6 +208,10 @@ namespace MetroidMapEditorCore
         {
             return (eip.Edge == _AttachRoomEdgeIndex.Edge) && (eip.Id == _AttachRoomEdgeIndex.Id) ;
         }
+        public bool checkEdgeIndexPair(RectTransform.Edge edge,int id)
+        {
+            return (_AttachRoomEdgeIndex.Edge == edge) && (_AttachRoomEdgeIndex.Id == id);
+        }
 //        public bool checkEdgeIndexPair(EdgeIndexPair eip,)
         public Vector3 getDoorPosInRoomLegelPos()
         {
@@ -207,6 +228,15 @@ namespace MetroidMapEditorCore
         public void EnableDoorButton(bool enable = false)
         {
             doorButton.enabled = enable;
+        }
+
+        public void refreshDoorOutLine(bool enable = false)
+        {
+            doorOutLine.enabled = enable;
+        }
+        public void refreshDoorAltOutLine(bool enable = false)
+        {
+            doorAltOutLine.enabled = enable;
         }
 
         public void callDoorInspector()

@@ -18,6 +18,7 @@ namespace MetroidMapEditorCore
         public Button _SetColorButton;
         public Button _AddDoorButton;
         public Button _CloseButton;
+        public Button _CreateHeroButton;
         public ColorPattle _colorPattle_RoomColor;
         public TMP_InputField _RoomNameInputField;
         public TextMeshProUGUI RoomNameArea;
@@ -66,6 +67,10 @@ namespace MetroidMapEditorCore
             {
                 _CloseButton.onClick.AddListener(() => HideRoomInspector());
             }
+            if (_CreateHeroButton)
+            {
+                _CreateHeroButton.onClick.AddListener(() => createHero());
+            }
         }
         void initializeSize()
         {
@@ -86,6 +91,13 @@ namespace MetroidMapEditorCore
 
         }
 
+        void createHero()
+        {
+            if (HeroBase._MainHero&&nowSelectRoom)
+            {
+                HeroBase._MainHero.CreateHero(nowSelectRoom);
+            }
+        }
         public void callDoorInspector(DoorBase door)
         {
             if (!doorInspector)

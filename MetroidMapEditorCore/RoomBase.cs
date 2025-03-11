@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Linq;
 
 namespace MetroidMapEditorCore
 {
@@ -146,6 +147,26 @@ namespace MetroidMapEditorCore
 
         }
 
+        public List<DoorBase> getEdgeDoors(RectTransform.Edge edge)
+        {
+            List<DoorBase> edgeDoors = new List<DoorBase>();
+            foreach (DoorBase door in doors)
+            {
+                if (door.getEip().Edge == edge)
+                {
+                    edgeDoors.Add(door);
+                }
+                if (door.checkEdgeIndexPair(GetNextEdge(edge), 0))
+                    edgeDoors.Add(door);
+            }
+
+            // 使用 LINQ 进行排序
+            edgeDoors = edgeDoors
+                .OrderBy(door => door.getEip().Edge != edge) // 优先排序：Edge != edge 的元素排在最后
+                .ThenBy(door => door.getEip().Id)           // 次要排序：Id 由小到大
+                .ToList();
+            return edgeDoors;
+        }
 
         public void setDoorToNewLegalPos(DoorBase door)
         {

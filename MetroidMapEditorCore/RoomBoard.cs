@@ -30,6 +30,7 @@ namespace MetroidMapEditorCore
         {
             //HandleZoom();
             HandlePanelDrag();
+            mouseScrollZoom();
         }
 
         void InitializeRooms()
@@ -44,6 +45,22 @@ namespace MetroidMapEditorCore
             }
         }
 
+        void mouseScrollZoom()
+        {
+            // 获取鼠标滚轮输入
+            Vector2 scrollDelta = Input.mouseScrollDelta;
+
+            if (scrollDelta.y > 0)
+            {
+                ZoomUp();
+                //Debug.Log("鼠标滚轮向上滚动");
+            }
+            else if (scrollDelta.y < 0)
+            {
+                ZoomDown();//                Debug.Log("鼠标滚轮向下滚动");
+            }
+        }
+
         // 创建新房间
         public void CreateRoom()
         {
@@ -55,7 +72,7 @@ namespace MetroidMapEditorCore
             newRoom.isSample = false;
             newRoom.gameObject.SetActive(true);
 
-            newRoom.transform.SetParent(transform);
+            newRoom.transform.SetParent(roomsContainer);
             newRoom.transform.localPosition = position;
             newRoom.transform.localScale = Vector3.one;
             newRoom.ReportRoomInitialize("初始化计入房间版总控");
@@ -77,21 +94,32 @@ namespace MetroidMapEditorCore
         //按钮调用 勿删
         public void ZoomUp()
         {
-            HandleZoom(zoomSpeed);
+            HandleZoom(zoomSpeed,Input.mousePosition);
         }
         public void ZoomDown()
         {
-            HandleZoom(-zoomSpeed);
+            HandleZoom(-zoomSpeed, Input.mousePosition);// new Vector2(Camera.main.pixelWidth, Camera.main.pixelHeight) * 0.5f);// Input.mousePosition);
         }
-        void HandleZoom(float zoomNum)
+        void HandleZoom(float zoomNum,Vector2 zoomCenter)
         {
             if (zoomNum != 0)
             {
-                Debug.Log("fangda");
+                Debug.Log($"缩放中{zoomCenter}");
 
+                // 计算缩放前的世界坐标中心点
+                Vector3 worldCenterBeforeZoom = Camera.main.ScreenToWorldPoint((zoomCenter-new Vector2(Camera.main.pixelWidth, Camera.main.pixelHeight)*0.5f)*_ZoomRateCurrent);
+
+                // 更新缩放比例
                 _ZoomRateCurrent += zoomNum;
                 _ZoomRateCurrent = Mathf.Clamp(_ZoomRateCurrent, zoomMin, zoomMax);
                 roomsContainer.localScale = new Vector3(_ZoomRateCurrent, _ZoomRateCurrent, 1f);
+
+                // 计算缩放后的世界坐标中心点
+                Vector3 worldCenterAfterZoom = Camera.main.ScreenToWorldPoint((zoomCenter - new Vector2(Camera.main.pixelWidth, Camera.main.pixelHeight) * 0.5f) *_ZoomRateCurrent);
+
+                // 调整位置以保持缩放中心点不变
+                Vector3 offset = worldCenterBeforeZoom - worldCenterAfterZoom;
+                roomsContainer.position += offset;
             }
         }
 

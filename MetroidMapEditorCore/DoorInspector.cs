@@ -26,6 +26,7 @@ namespace MetroidMapEditorCore
         // Start is called before the first frame update
         void Start()
         {
+            initButtons();
             if (RoomInspector.current)
             {
                 if(current==this)
@@ -42,11 +43,15 @@ namespace MetroidMapEditorCore
 
         public void callDoorInspector(DoorBase door)
         {
+            if (_NowSelectDoor)
+                _NowSelectDoor.refreshDoorOutLine();
+
            // refreshRoomOutline();
             gameObject.SetActive(true);
             _NowSelectDoor= door;
             _IdText.text = door.getEip().Id.ToString();
             _EdgeText.text = door.getEip().Edge.ToString();
+            door.refreshDoorOutLine(true);
 //            _RoomNameInputField.fontAsset = aimFont;
 //            _RoomNameInputField.text = "";
 //            RoomNameArea.text = room.name;
@@ -55,7 +60,6 @@ namespace MetroidMapEditorCore
 //            _RoomSizeY.text = room._RoomSize.y.ToString();
 //            _RoomGridOffset.text = room._RoomGridOffset.ToString();
 //            refreshRoomOutline(true);
-            initButtons();
         }
         public void initButtons()
         {
@@ -118,6 +122,8 @@ namespace MetroidMapEditorCore
 
                 WayBase newWay = Instantiate(SampleUIObjs.main.sampleWay);
                 newWay.attachDoors = new DoorBase[2] { startDoor, endDoor };
+                startDoor._DoorWay = newWay;
+                endDoor._DoorWay = newWay;
                 newWay.showThisWay();
             }
 
@@ -126,6 +132,7 @@ namespace MetroidMapEditorCore
         {
             if(_NowSelectDoor)
             {
+                _NowSelectDoor.refreshDoorOutLine(false);
                 _NowSelectDoor.dragController.onDragPrepare(false);
             }
             gameObject.SetActive(false);

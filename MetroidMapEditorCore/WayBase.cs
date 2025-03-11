@@ -43,7 +43,16 @@ namespace MetroidMapEditorCore
             //lineRenderer.startColor = Color.red; // 设置线颜色
             //lineRenderer.endColor = Color.red;
         }
+        public DoorBase getOtherDoor(DoorBase door1)
+        {
+            if (attachDoors[0] == door1)
+                return attachDoors[1];
+            if (attachDoors[1] == door1)
+                return attachDoors[0];
+            Debug.LogError("输入非此路径的门");
+            return default;
 
+        }
         void UpdateLinePositions()
         {
             if (attachDoors.Length < 2)

@@ -26,7 +26,7 @@ using UnityEngine.UI;
             return _AbilityName;
         }
 
-        public void getAbility_PlayerMotion()
+        public void GainAbility()
         {
             _isGain = true;
         }
